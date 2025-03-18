@@ -13,12 +13,13 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
         background-color: white;
         color: #0F6FF8;
         font-family: Arial, sans-serif;
         overflow: hidden;
-    }
+        }
 
         #background-frame {
             position: fixed;
@@ -83,99 +84,96 @@
             background-color: #004aad;
         }
 
-/* Ensure body has a blue background */
+        /* live-screen */
 
-#live-screen-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
+        .header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #0F6FF8;
+            color: white;
+        }
 
-#live-screen {
-    position: relative;
-    width: 90%;
-    max-width: 500px;
-    height: 70%;
-    background-color: white;
-    border: 2px solid #0F6FF8;
-    border-radius: 15px;
-    overflow: hidden;
-}
+        .float-round-btn {
+            background-color: white;
+            color: #0F6FF8;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 20px;
+        }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    background-color: #0F6FF8;
-    color: white;
-}
+        #live-screen-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-.float-round-btn {
-    background-color: white;
-    color: #0F6FF8;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    font-size: 20px;
-}
+        #live-screen {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            height: 70%;
+            background-color: white;
+            border: 2px solid #0F6FF8;
+            border-radius: 15px;
+            overflow: hidden;
+        }
 
-.mirror-screen {
-    width: 100%;
-    height: 90%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+        .mirror-screen {
+            width: 100%;
+            height: 90%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-#screen {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Ensures the image fills the container while maintaining aspect ratio */
-}
+        #screen {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures the image fills the container while maintaining aspect ratio */
+        }
 
 
-/* /////////////////////////////////////////////////////////////// */
-* Fullscreen Mode */
-.fullscreen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        /* /////////////////////////////////////////////////////////////// */
+        /* .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        } */
 
-/* Image Styling */
-.fullscreen img {
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
+        /* Image Styling */
+        .fullscreen img {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
 
-/* Portrait Mode Fullscreen */
-.fullscreen.portrait img {
-    width: 100vw;
-    height: 115vh;  /* Increased height to show bottom */
-    object-fit: contain;
-}
+        /* Portrait Mode Fullscreen */
+        .fullscreen.portrait img {
+            width: 100vw;
+            height: 115vh;  /* Increased height to show bottom */
+            object-fit: contain;
+        }
 
-/* Landscape Mode Fullscreen */
-.fullscreen.landscape img {
-    width: 100vw;
-    height: 60vw;
-    object-fit: cover;
-}
+        /* Landscape Mode Fullscreen */
+        .fullscreen.landscape img {
+            width: 100vw;
+            height: 60vw;
+            object-fit: cover;
+        }
 
     </style>
-
-
 </head>
 
 
@@ -231,6 +229,8 @@
 
         </div>
     </div>
+
+    
 <script>
     let socket;
 
