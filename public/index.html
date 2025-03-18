@@ -122,14 +122,25 @@
     font-size: 20px;
 }
 
-.mirror-screen {
+/* .mirror-screen {
     width: 100%;
     height: 90%;
     display: flex;
     justify-content: center;
     align-items: center;
-}
+} */
 
+
+/* Ensure Zoom Doesn't Overflow */
+.mirror-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;  /* Prevents content from escaping the div */
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
 #screen {
     width: 100%;
     height: 100%;
@@ -137,6 +148,41 @@
 }
 
 
+/* /////////////////////////////////////////////////////////////// */
+* Fullscreen Mode */
+.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Image Styling */
+.fullscreen img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Portrait Mode Fullscreen */
+.fullscreen.portrait img {
+    width: 100vw;
+    height: 115vh;  /* Increased height to show bottom */
+    object-fit: contain;
+}
+
+/* Landscape Mode Fullscreen */
+.fullscreen.landscape img {
+    width: 100vw;
+    height: 60vw;
+    object-fit: cover;
+}
 
     </style>
 
@@ -167,26 +213,41 @@
     </div>
 
     <!-- Live Screen Section -->
-    <div id="live-screen-container">
-        <div id="live-screen">
-            <div class="header">
-                <h2>Live Stream</h2>
-                <button class="float-round-btn" onclick="stopMirroring()">✖</button>
-                <button class="float-round-btn" onclick="toggleFullScreen()">
-                    <i class="fas fa-expand"></i>
-                </button>
-                <button class="float-round-btn" onclick="zoomIn()">
-                    <i class="fas fa-search-plus"></i>
-                </button>
-                <button class="float-round-btn" onclick="zoomOut()">
-                    <i class="fas fa-search-minus"></i>
-                </button>
-            </div>
-            <div class="mirror-screen">
-                <img id="screen" src="" alt="Live Screen Feed">
-            </div>
+<div id="live-screen-container">
+    <div id="live-screen">
+        <div class="header">
+            <h2>Live Stream</h2>
+            
+            <!-- <button class="float-round-btn" onclick="toggleFullScreen()">
+                <i class="fas fa-search-minus"></i>jnkj
+            </button> -->
+
+
+
+            <button class="float-round-btn" onclick="zoomIn()">
+                <i class="fas fa-search-plus"></i>
+            </button>
+            <button class="float-round-btn" onclick="zoomOut()">
+                <i class="fas fa-search-minus"></i>
+            </button>
+
+            <button class="float-round-btn" onclick="toggleLandscapeMode()">
+                <i class="fas fa-arrows-alt-h"></i>
+            </button>
+            <button class="float-round-btn" onclick="togglePortraitMode()">
+                <i class="fas fa-arrows-alt-v"></i>
+            </button>
+
+
+            <button class="float-round-btn" onclick="stopMirroring()">✖</button>
+
+        </div>
+        <div class="mirror-screen" id="mirror-screen">
+            <img id="screen" src="" alt="Live Screen Feed">
         </div>
     </div>
+</div>
+
 
     <script>
         let socket;
@@ -254,56 +315,81 @@
     
 
 
-        
-        function zoomIn() {
-            const screen = document.getElementById("screen");
-            let currentWidth = screen.clientWidth;
-            screen.style.width = (currentWidth * 1.1) + "px"; // Increase width by 10%
-        }
     
-        function zoomOut() {
-            const screen = document.getElementById("screen");
-            let currentWidth = screen.clientWidth;
-            screen.style.width = (currentWidth * 0.9) + "px"; // Decrease width by 10%
-        }
 
-        function toggleFullScreen() {
-    let mirrorScreen = document.getElementById(".mirror-screen");
 
-    if (!document.fullscreenElement) {
-        mirrorScreen.style.width = "100vw"; // Expand to full viewport width
-        mirrorScreen.style.height = "100vh"; // Expand to full viewport height
+        function zoomIn() {
+    let img = document.getElementById("screen");
 
-        if (mirrorScreen.requestFullscreen) {
-            mirrorScreen.requestFullscreen();
-        } else if (mirrorScreen.mozRequestFullScreen) {
-            mirrorScreen.mozRequestFullScreen();
-        } else if (mirrorScreen.webkitRequestFullscreen) {
-            mirrorScreen.webkitRequestFullscreen();
-        } else if (mirrorScreen.msRequestFullscreen) {
-            mirrorScreen.msRequestFullscreen();
-        }
-    } else {
-        document.exitFullscreen();
-        mirrorScreen.style.width = ""; // Reset to default
-        mirrorScreen.style.height = "";
+    if (zoomLevel < 3) {  // Max zoom level (prevents infinite zoom)
+        zoomLevel += 0.2;
+        img.style.transform = `scale(${zoomLevel})`;
+    }
+}
+
+function zoomOut() {
+    let img = document.getElementById("screen");
+
+    if (zoomLevel > 0.5) {  // Min zoom level (prevents infinite shrink)
+        zoomLevel -= 0.2;
+        img.style.transform = `scale(${zoomLevel})`;
     }
 }
 
 
 
+// function toggleFullScreen() {
+//     let screen = document.getElementById("mirror-screen");
 
-window.addEventListener("orientationchange", function () {
-    if (window.orientation === 90 || window.orientation === -90) {
-        document.body.style.transform = "rotate(0deg)";
-        document.body.style.width = "100vw";
-        document.body.style.height = "100vh";
+//     if (!document.fullscreenElement) {
+//         screen.classList.add("fullscreen");
+//         if (screen.requestFullscreen) {
+//             screen.requestFullscreen();
+//         } else if (screen.webkitRequestFullscreen) {
+//             screen.webkitRequestFullscreen();
+//         } else if (screen.msRequestFullscreen) {
+//             screen.msRequestFullscreen();
+//         }
+//     } else {
+//         document.exitFullscreen();
+//         screen.classList.remove("fullscreen");
+//     }
+// }
+
+function toggleLandscapeMode() {
+    let screen = document.getElementById("mirror-screen");
+    let img = document.getElementById("screen");
+
+    if (!document.fullscreenElement) {
+        screen.classList.add("fullscreen");
+        img.style.width = "100vw";
+        img.style.height = "56.25vw"; // Maintains 16:9 aspect ratio
+        img.style.objectFit = "cover";
+
+        screen.requestFullscreen();
     } else {
-        document.body.style.transform = "rotate(90deg)";
-        document.body.style.width = "100vh";
-        document.body.style.height = "100vw";
+        document.exitFullscreen();
+        screen.classList.remove("fullscreen");
     }
-});
+}
+
+function togglePortraitMode() {
+    let screen = document.getElementById("mirror-screen");
+    let img = document.getElementById("screen");
+
+    if (!document.fullscreenElement) {
+        screen.classList.add("fullscreen");
+        img.style.width = "100vw";
+        img.style.height = "100vh"; // Keeps it fully visible
+        img.style.objectFit = "contain"; // Ensures header & bottom are fully visible
+        img.style.margin = "auto"; 
+
+        screen.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+        screen.classList.remove("fullscreen");
+    }
+}
 
 
     
