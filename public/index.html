@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, orientation=landscape">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, orientation=landscape">
     <title>Screen Mirror: Record & Browse</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    
+
     <style>
         * {
             margin: 0;
@@ -15,10 +17,10 @@
         }
 
         body {
-        background-color: white;
-        color: #0F6FF8;
-        font-family: Arial, sans-serif;
-        overflow: hidden;
+            background-color: white;
+            color: #0F6FF8;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
         }
 
         #background-frame {
@@ -59,8 +61,13 @@
         }
 
         @keyframes zoomEffect {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.1); }
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.1);
+            }
         }
 
         /* Play Store Button */
@@ -134,7 +141,8 @@
         #screen {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Ensures the image fills the container while maintaining aspect ratio */
+            object-fit: cover;
+            /* Ensures the image fills the container while maintaining aspect ratio */
         }
 
 
@@ -162,7 +170,8 @@
         /* Portrait Mode Fullscreen */
         .fullscreen.portrait img {
             width: 100vw;
-            height: 115vh;  /* Increased height to show bottom */
+            height: 115vh;
+            /* Increased height to show bottom */
             object-fit: contain;
         }
 
@@ -172,7 +181,6 @@
             height: 60vw;
             object-fit: cover;
         }
-
     </style>
 </head>
 
@@ -193,7 +201,7 @@
             <p>2. Wait for the connection to establish.</p>
             <p>3. Once connected, the live screen will appear.</p>
             <a href="https://play.google.com/store/apps/details?id=com.gr.screenmirroring.miracast.casttotv.screenshare&hl=en"
-               target="_blank" id="google-button">
+                target="_blank" id="google-button">
                 <i class="fab fa-google-play"></i> Get it on Play Store
             </a>
         </div>
@@ -219,7 +227,7 @@
                     <i class="fas fa-arrows-alt-v"></i>
                 </button>
 
-                 <button class="float-round-btn" onclick="stopMirroring()">✖</button>
+                <button class="float-round-btn" onclick="stopMirroring()">✖</button>
 
             </div>
 
@@ -230,120 +238,127 @@
         </div>
     </div>
 
-    
-<script>
-    let socket;
 
-    function getWebSocketURL() {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const host = window.location.hostname;
-        const port = "5001"; // Change if needed or make it configurable
-        return `${protocol}://${host}:${port}`;
-    }
+    <script>
+        let socket;
 
-    function startWebSocket() {
-        socket = new WebSocket(getWebSocketURL());
+        function getWebSocketURL() {
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const host = window.location.host; // includes domain + port (if any)
+            return `${protocol}://${host}`;
+        }
 
-        socket.onopen = () => {
-            console.log("WebSocket connected.");
-        };
+        // function getWebSocketURL() {
+        //     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        //     const host = window.location.hostname;
+        //     const port = "5001"; // Change if needed or make it configurable
+        //     return `${protocol}://${host}:${port}`;
+        // }
 
-        socket.onmessage = (event) => {
-            // Hide QR Code Section
-            document.getElementById("qr-container").style.opacity = "0";
-            setTimeout(() => {
-                document.getElementById("qr-container").style.display = "none";
-                document.getElementById("live-screen-container").style.display = "flex";
-                document.getElementById("live-screen-container").style.opacity = "1";
-                document.getElementById("float-round-btn").style.display = "flex";
-            }, 500);
+        function startWebSocket() {
+            socket = new WebSocket(getWebSocketURL());
 
-            // Set Live Screen Image
-            const blob = new Blob([event.data], { type: "image/jpeg" });
-            const imageUrl = URL.createObjectURL(blob);
-            const screenElement = document.getElementById("screen");
+            socket.onopen = () => {
+                console.log("WebSocket connected.");
+            };
 
-            // Revoke previous URL to free memory
-            if (screenElement.src) {
-                URL.revokeObjectURL(screenElement.src);
+            socket.onmessage = (event) => {
+                // Hide QR Code Section
+                document.getElementById("qr-container").style.opacity = "0";
+                setTimeout(() => {
+                    document.getElementById("qr-container").style.display = "none";
+                    document.getElementById("live-screen-container").style.display = "flex";
+                    document.getElementById("live-screen-container").style.opacity = "1";
+                    document.getElementById("float-round-btn").style.display = "flex";
+                }, 500);
+
+                // Set Live Screen Image
+                const blob = new Blob([event.data], { type: "image/jpeg" });
+                const imageUrl = URL.createObjectURL(blob);
+                const screenElement = document.getElementById("screen");
+
+                // Revoke previous URL to free memory
+                if (screenElement.src) {
+                    URL.revokeObjectURL(screenElement.src);
+                }
+                screenElement.src = imageUrl;
+            };
+
+            socket.onclose = () => {
+                console.log("WebSocket closed. Reverting to QR Code.");
+                stopMirroring();
+                setTimeout(startWebSocket, 3000); // Auto-reconnect after 3 seconds
+            };
+
+            socket.onerror = (error) => {
+                console.error("WebSocket error:", error);
+            };
+        }
+
+        function stopMirroring() {
+            if (socket) {
+                socket.close();
             }
-            screenElement.src = imageUrl;
-        };
 
-        socket.onclose = () => {
-            console.log("WebSocket closed. Reverting to QR Code.");
-            stopMirroring();
-            setTimeout(startWebSocket, 3000); // Auto-reconnect after 3 seconds
-        };
-
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
-        };
-    }
-
-    function stopMirroring() {
-        if (socket) {
-            socket.close();
+            document.getElementById("live-screen-container").style.opacity = "0";
+            setTimeout(() => {
+                document.getElementById("live-screen-container").style.display = "none";
+                document.getElementById("qr-container").style.display = "flex";
+                document.getElementById("qr-container").style.opacity = "1";
+                document.getElementById("float-round-btn").style.display = "none";
+            }, 500);
         }
 
-        document.getElementById("live-screen-container").style.opacity = "0";
-        setTimeout(() => {
-            document.getElementById("live-screen-container").style.display = "none";
-            document.getElementById("qr-container").style.display = "flex";
-            document.getElementById("qr-container").style.opacity = "1";
-            document.getElementById("float-round-btn").style.display = "none";
-        }, 500);
-    }
-
-    function zoomIn() {
-        const screen = document.getElementById("screen");
-        let currentWidth = screen.clientWidth;
-        screen.style.width = (currentWidth * 1.1) + "px"; // Increase width by 10%
-    }
-
-    function zoomOut() {
-        const screen = document.getElementById("screen");
-        let currentWidth = screen.clientWidth;
-        screen.style.width = (currentWidth * 0.9) + "px"; // Decrease width by 10%
-    }
-
-    function toggleLandscapeMode() {
-        let screen = document.getElementById("mirror-screen");
-        let img = document.getElementById("screen");
-
-        if (!document.fullscreenElement) {
-            screen.classList.add("fullscreen");
-            img.style.width = "100vw";
-            img.style.height = "56.25vw"; // Maintains 16:9 aspect ratio
-            img.style.objectFit = "cover";
-
-            screen.requestFullscreen();
-        } else {
-            document.exitFullscreen();
-            screen.classList.remove("fullscreen");
+        function zoomIn() {
+            const screen = document.getElementById("screen");
+            let currentWidth = screen.clientWidth;
+            screen.style.width = (currentWidth * 1.1) + "px"; // Increase width by 10%
         }
-    }
 
-    function togglePortraitMode() {
-        let screen = document.getElementById("mirror-screen");
-        let img = document.getElementById("screen");
-
-        if (!document.fullscreenElement) {
-            screen.classList.add("fullscreen");
-            img.style.width = "100vw";
-            img.style.height = "100vh"; // Keeps it fully visible
-            img.style.objectFit = "contain"; // Ensures header & bottom are fully visible
-            img.style.margin = "auto"; 
-
-            screen.requestFullscreen();
-        } else {
-            document.exitFullscreen();
-            screen.classList.remove("fullscreen");
+        function zoomOut() {
+            const screen = document.getElementById("screen");
+            let currentWidth = screen.clientWidth;
+            screen.style.width = (currentWidth * 0.9) + "px"; // Decrease width by 10%
         }
-    }
 
-    startWebSocket();
-</script>
+        function toggleLandscapeMode() {
+            let screen = document.getElementById("mirror-screen");
+            let img = document.getElementById("screen");
+
+            if (!document.fullscreenElement) {
+                screen.classList.add("fullscreen");
+                img.style.width = "100vw";
+                img.style.height = "56.25vw"; // Maintains 16:9 aspect ratio
+                img.style.objectFit = "cover";
+
+                screen.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+                screen.classList.remove("fullscreen");
+            }
+        }
+
+        function togglePortraitMode() {
+            let screen = document.getElementById("mirror-screen");
+            let img = document.getElementById("screen");
+
+            if (!document.fullscreenElement) {
+                screen.classList.add("fullscreen");
+                img.style.width = "100vw";
+                img.style.height = "100vh"; // Keeps it fully visible
+                img.style.objectFit = "contain"; // Ensures header & bottom are fully visible
+                img.style.margin = "auto";
+
+                screen.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+                screen.classList.remove("fullscreen");
+            }
+        }
+
+        startWebSocket();
+    </script>
 
 </body>
-</html>    
+
+</html>

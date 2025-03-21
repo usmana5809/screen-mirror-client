@@ -1,3 +1,4 @@
+require("dotenv").config(); // ✅ Load .env
 const express = require("express");
 const WebSocket = require("ws");
 const qr = require("qr-image");
@@ -6,12 +7,21 @@ const os = require("os");
 const path = require("path");
 const https = require("https");
 
+
+
+
 // 🔹 Configuration
 const app = express();
 const HTTP_PORT = 5000;
 const WS_PORT = 5001;
-const PUBLIC_DIR = path.join(__dirname, "public");
 
+
+const PUBLIC_DIR = path.join(__dirname, "public");
+app.use(express.static(PUBLIC_DIR));
+
+const server = https.createServer({}, app); // Keep empty object or use `http.createServer()` instead
+
+const wss = new WebSocket.Server({ server });
 // 🔹 Function to Get Local Network IP
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
@@ -41,8 +51,31 @@ app.get("/qr", (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, "qr.png"));
 });
 
-// 🔹 Create WebSocket Server for Audio/Video Streaming
-const wss = new WebSocket.Server({ port: WS_PORT });
+// // 🔹 Create WebSocket Server for Audio/Video Streaming
+// wss.on("connection", (ws) => {
+//     console.log("✅ Client connected!");
+
+//     ws.on("message", (data) => {
+//         if (Buffer.isBuffer(data)) {
+//             console.log(`📡 Received ${data.length} bytes of media data`);
+
+//             // Broadcast the media data to all clients
+//             wss.clients.forEach((client) => {
+//                 if (client !== ws && client.readyState === WebSocket.OPEN) {
+//                     client.send(data);
+//                 }
+//             });
+
+//             console.log("🚀 Media data forwarded to clients.");
+//         } else {
+//             console.warn("⚠️ Received non-binary data, ignoring...");
+//         }
+//     });
+
+//     ws.on("close", () => console.log("❌ Client disconnected"));
+//     ws.on("error", (err) => console.error("❌ WebSocket error:", err));
+// });
+
 
 wss.on("connection", (ws) => {
     console.log("✅ Client connected!");
@@ -51,7 +84,6 @@ wss.on("connection", (ws) => {
         if (Buffer.isBuffer(data)) {
             console.log(`📡 Received ${data.length} bytes of media data`);
 
-            // Broadcast the media data to all clients
             wss.clients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
                     client.send(data);
@@ -59,8 +91,6 @@ wss.on("connection", (ws) => {
             });
 
             console.log("🚀 Media data forwarded to clients.");
-        } else {
-            console.warn("⚠️ Received non-binary data, ignoring...");
         }
     });
 
@@ -68,12 +98,16 @@ wss.on("connection", (ws) => {
     ws.on("error", (err) => console.error("❌ WebSocket error:", err));
 });
 
-// 🔹 Start Express Server
-app.listen(HTTP_PORT, () => {
-    console.log(`✅ HTTP Server running at: http://${localIp}:${HTTP_PORT}`);
-    console.log(`🖼️ QR Code available at: http://${localIp}:${HTTP_PORT}/qr`);
-    console.log(`🔌 WebSocket Server listening on: ws://${localIp}:${WS_PORT}`);
+server.listen(process.env.PORT || 3000, () => {
+    console.log("✅ Server is running at:", `https://${process.env.PROJECT_DOMAIN}.glitch.me`);
 });
+
+// // 🔹 Start Express Server
+// app.listen(HTTP_PORT, () => {
+//     console.log(`✅ HTTP Server running at: http://${localIp}:${HTTP_PORT}`);
+//     console.log(`🖼️ QR Code available at: http://${localIp}:${HTTP_PORT}/qr`);
+//     console.log(`🔌 WebSocket Server listening on: ws://${localIp}:${WS_PORT}`);
+// });
 
 // 🔹 Optional: Secure WebSocket (WSS) Setup
 // Uncomment & add SSL certificate paths if needed
