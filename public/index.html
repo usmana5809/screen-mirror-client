@@ -244,10 +244,9 @@
 
     
     function getWebSocketURL() {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = window.location.hostname;
-    return `${protocol}://${host}`;
-}
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        return `${protocol}://${window.location.host}`;
+    }
 
 
 //     function getWebSocketURL() {

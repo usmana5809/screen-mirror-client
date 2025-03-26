@@ -6,39 +6,37 @@ const path = require("path");
 
 const app = express();
 const HTTP_PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = path.join(__dirname, "public");
 
-// Serve public files
-app.use(express.static("public"));
+app.use(express.static(PUBLIC_DIR));
 
-// Function to get the local IP of the user
+// 🔹 Get Local IP for Each User
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const net of interfaces[name]) {
-            if (net.family === "IPv4" && !net.internal) {
-                return net.address;
+    for (const iface of Object.values(interfaces)) {
+        for (const config of iface) {
+            if (config.family === "IPv4" && !config.internal) {
+                return config.address;
             }
         }
     }
     return "127.0.0.1";
 }
 
-// Handle QR Code Generation Per User
+// 🔹 Serve QR Code Dynamically
 app.get("/qr", (req, res) => {
-    const userIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-    const webSocketUrl = `ws://${userIp}:${HTTP_PORT + 1}`;
-    
-    const qrCode = qr.imageSync(webSocketUrl, { type: "png" });
+    const localIp = getLocalIp();
+    const userUrl = `http://${localIp}:${HTTP_PORT}`;
+    const qrCode = qr.imageSync(userUrl, { type: "png" });
     res.setHeader("Content-Type", "image/png");
     res.send(qrCode);
 });
 
-// Start Express server
+// 🔹 WebSocket Server
 const server = app.listen(HTTP_PORT, () => {
-    console.log(`✅ Server running on: https://${process.env.PROJECT_DOMAIN}.glitch.me`);
+    console.log(`✅ Server running at: http://localhost:${HTTP_PORT}`);
 });
 
-// WebSocket server
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
@@ -46,18 +44,11 @@ wss.on("connection", (ws) => {
 
     ws.on("message", (data) => {
         if (Buffer.isBuffer(data)) {
-            console.log(`📡 Received ${data.length} bytes of media data`);
-
-            // Broadcast media only to the sender's specific clients
             wss.clients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
                     client.send(data);
                 }
             });
-
-            console.log("🚀 Media forwarded.");
-        } else {
-            console.warn("⚠️ Ignored non-binary data.");
         }
     });
 
