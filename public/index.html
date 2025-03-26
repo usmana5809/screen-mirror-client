@@ -237,59 +237,69 @@
 
         </div>
     </div>
+<script>
+    let socket;
 
-    
-    <script>
-        let socket;
-    
-    
-        function getWebSocketURL() {
+    function generateRoomId() {
+        // Generate a random 6-digit room ID or use URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        let roomId = urlParams.get("room");
+        if (!roomId) {
+            roomId = Math.random().toString(36).substring(2, 8); // Random 6-char ID
+            window.history.replaceState(null, "", `?room=${roomId}`); // Update URL
+        }
+        return roomId;
+    }
+
+    function getWebSocketURL() {
         const protocol = window.location.protocol === "https:" ? "wss" : "ws";
         const host = window.location.hostname;
-        return `${protocol}://${host}`;
+        const roomId = generateRoomId(); // Get or create a unique room
+        return `${protocol}://${host}?room=${roomId}`;
     }
-    
-            function startWebSocket() {
-                socket = new WebSocket(getWebSocketURL());
-    
-                socket.onopen = () => {
-                    console.log("WebSocket connected.");
-                };
-    
-                socket.onmessage = (event) => {
-                    // Hide QR Code Section
-                    document.getElementById("qr-container").style.opacity = "0";
-                    setTimeout(() => {
-                        document.getElementById("qr-container").style.display = "none";
-                        document.getElementById("live-screen-container").style.display = "flex";
-                        document.getElementById("live-screen-container").style.opacity = "1";
-                        document.getElementById("float-round-btn").style.display = "flex";
-                    }, 500);
-    
-                    // Set Live Screen Image
-                    const blob = new Blob([event.data], { type: "image/jpeg" });
-                    const imageUrl = URL.createObjectURL(blob);
-                    const screenElement = document.getElementById("screen");
-    
-                    // Revoke previous URL to free memory
-                    if (screenElement.src) {
-                        URL.revokeObjectURL(screenElement.src);
-                    }
-                    screenElement.src = imageUrl;
-                };
-    
-                socket.onclose = () => {
-                    console.log("WebSocket closed. Reverting to QR Code.");
-                    stopMirroring();
-                    setTimeout(startWebSocket, 3000); // Auto-reconnect after 3 seconds
-                };
-    
-                socket.onerror = (error) => {
-                    console.error("WebSocket error:", error);
-                };
+
+    function startWebSocket() {
+        socket = new WebSocket(getWebSocketURL());
+
+        socket.onopen = () => {
+            console.log("✅ WebSocket connected to room:", getWebSocketURL());
+        };
+
+        socket.onmessage = (event) => {
+            // Hide QR Code Section
+            document.getElementById("qr-container").style.opacity = "0";
+            setTimeout(() => {
+                document.getElementById("qr-container").style.display = "none";
+                document.getElementById("live-screen-container").style.display = "flex";
+                document.getElementById("live-screen-container").style.opacity = "1";
+                document.getElementById("float-round-btn").style.display = "flex";
+            }, 500);
+
+            // Set Live Screen Image
+            const blob = new Blob([event.data], { type: "image/jpeg" });
+            const imageUrl = URL.createObjectURL(blob);
+            const screenElement = document.getElementById("screen");
+
+            // Revoke previous URL to free memory
+            if (screenElement.src) {
+                URL.revokeObjectURL(screenElement.src);
             }
+            screenElement.src = imageUrl;
+        };
 
+        socket.onclose = () => {
+            console.log("❌ WebSocket closed. Reconnecting...");
+            stopMirroring();
+            setTimeout(startWebSocket, 3000); // Auto-reconnect after 3 seconds
+        };
 
+        socket.onerror = (error) => {
+            console.error("⚠️ WebSocket error:", error);
+        };
+    }
+
+    // Start WebSocket on page load
+    window.onload = startWebSocket;
             
         function stopMirroring() {
             if (socket) {
