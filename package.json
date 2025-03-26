@@ -21,6 +21,6 @@
     "node": ">=16"
   },
   "keywords": ["screen-mirroring", "websockets", "ffmpeg", "real-time", "glitch"],
-  "author": "Your Name",
+  "author": "Usmana",
   "license": "MIT"
 }

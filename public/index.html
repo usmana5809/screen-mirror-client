@@ -238,69 +238,85 @@
         </div>
     </div>
 
+    <script>
+        
+        let socket;
+        let clientId = null;  // Unique ID assigned by the server
+        let targetId = null;  // ID of the user to whom we want to stream
     
-<script>
-    let socket;
-
-
-    function getWebSocketURL() {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = window.location.hostname;
-    return `${protocol}://${host}`;
-}
-
-    // function getWebSocketURL() {
-    //     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    //     const host = window.location.hostname;
-    //     const port = "5001"; // Change if needed or make it configurable
-    //     return `${protocol}://${host}:${port}`;
-    // }
-
+        function getWebSocketURL() {
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const host = window.location.hostname;
+            return `${protocol}://${host}`;
+        }
+    
         function startWebSocket() {
             socket = new WebSocket(getWebSocketURL());
-
+    
             socket.onopen = () => {
-                console.log("WebSocket connected.");
+                console.log("✅ WebSocket connected.");
             };
-
+    
             socket.onmessage = (event) => {
-                // Hide QR Code Section
-                document.getElementById("qr-container").style.opacity = "0";
-                setTimeout(() => {
-                    document.getElementById("qr-container").style.display = "none";
-                    document.getElementById("live-screen-container").style.display = "flex";
-                    document.getElementById("live-screen-container").style.opacity = "1";
-                    document.getElementById("float-round-btn").style.display = "flex";
-                }, 500);
-
-                // Set Live Screen Image
-                const blob = new Blob([event.data], { type: "image/jpeg" });
-                const imageUrl = URL.createObjectURL(blob);
-                const screenElement = document.getElementById("screen");
-
-                // Revoke previous URL to free memory
-                if (screenElement.src) {
-                    URL.revokeObjectURL(screenElement.src);
+                const data = JSON.parse(event.data);
+    
+                if (data.type === "welcome") {
+                    clientId = data.clientId;
+                    console.log(`🎯 Assigned Client ID: ${clientId}`);
+                } else if (data.type === "stream") {
+                    if (data.clientId !== clientId) {
+                        displayScreenStream(data.payload);
+                    }
                 }
-                screenElement.src = imageUrl;
             };
-
+    
             socket.onclose = () => {
-                console.log("WebSocket closed. Reverting to QR Code.");
+                console.log("❌ WebSocket closed. Attempting to reconnect...");
                 stopMirroring();
                 setTimeout(startWebSocket, 3000); // Auto-reconnect after 3 seconds
             };
-
+    
             socket.onerror = (error) => {
-                console.error("WebSocket error:", error);
+                console.error("⚠️ WebSocket error:", error);
             };
         }
-
+    
+        function displayScreenStream(imageData) {
+            document.getElementById("qr-container").style.opacity = "0";
+            setTimeout(() => {
+                document.getElementById("qr-container").style.display = "none";
+                document.getElementById("live-screen-container").style.display = "flex";
+                document.getElementById("live-screen-container").style.opacity = "1";
+                document.getElementById("float-round-btn").style.display = "flex";
+            }, 500);
+    
+            // Convert received binary data into an image
+            const blob = new Blob([imageData], { type: "image/jpeg" });
+            const imageUrl = URL.createObjectURL(blob);
+            const screenElement = document.getElementById("screen");
+    
+            // Free up memory from previous image
+            if (screenElement.src) {
+                URL.revokeObjectURL(screenElement.src);
+            }
+            screenElement.src = imageUrl;
+        }
+    
+        function shareScreen(imageData) {
+            if (!targetId) {
+                console.warn("⚠️ No target selected for streaming.");
+                return;
+            }
+            if (socket && clientId) {
+                socket.send(JSON.stringify({ type: "stream", targetId, payload: imageData }));
+            }
+        }
+    
         function stopMirroring() {
             if (socket) {
                 socket.close();
             }
-
+    
             document.getElementById("live-screen-container").style.opacity = "0";
             setTimeout(() => {
                 document.getElementById("live-screen-container").style.display = "none";
@@ -309,56 +325,34 @@
                 document.getElementById("float-round-btn").style.display = "none";
             }, 500);
         }
-
+    
+        function selectTargetUser(userId) {
+            targetId = userId;
+            console.log(`📡 Selected Target User: ${targetId}`);
+        }
+    
         function zoomIn() {
             const screen = document.getElementById("screen");
-            let currentWidth = screen.clientWidth;
-            screen.style.width = (currentWidth * 1.1) + "px"; // Increase width by 10%
+            screen.style.width = (screen.clientWidth * 1.1) + "px";
         }
-
+    
         function zoomOut() {
             const screen = document.getElementById("screen");
-            let currentWidth = screen.clientWidth;
-            screen.style.width = (currentWidth * 0.9) + "px"; // Decrease width by 10%
+            screen.style.width = (screen.clientWidth * 0.9) + "px";
         }
-
-        function toggleLandscapeMode() {
+    
+        function toggleFullscreen() {
             let screen = document.getElementById("mirror-screen");
-            let img = document.getElementById("screen");
-
             if (!document.fullscreenElement) {
-                screen.classList.add("fullscreen");
-                img.style.width = "100vw";
-                img.style.height = "56.25vw"; // Maintains 16:9 aspect ratio
-                img.style.objectFit = "cover";
-
                 screen.requestFullscreen();
             } else {
                 document.exitFullscreen();
-                screen.classList.remove("fullscreen");
             }
         }
-
-        function togglePortraitMode() {
-            let screen = document.getElementById("mirror-screen");
-            let img = document.getElementById("screen");
-
-            if (!document.fullscreenElement) {
-                screen.classList.add("fullscreen");
-                img.style.width = "100vw";
-                img.style.height = "100vh"; // Keeps it fully visible
-                img.style.objectFit = "contain"; // Ensures header & bottom are fully visible
-                img.style.margin = "auto";
-
-                screen.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-                screen.classList.remove("fullscreen");
-            }
-        }
-
+    
         startWebSocket();
     </script>
+    
 
 </body>
 
