@@ -1,61 +1,66 @@
 const express = require("express");
 const WebSocket = require("ws");
 const qr = require("qr-image");
-const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = path.join(__dirname, "public");
+const HTTP_PORT = process.env.PORT || 3000;
 
-// Serve Static Files
-app.use(express.static(PUBLIC_DIR));
+// Serve public files
+app.use(express.static("public"));
 
+// Function to get the local IP of the user
+function getLocalIp() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const net of interfaces[name]) {
+            if (net.family === "IPv4" && !net.internal) {
+                return net.address;
+            }
+        }
+    }
+    return "127.0.0.1";
+}
+
+// Handle QR Code Generation Per User
 app.get("/qr", (req, res) => {
-    const serverUrl = `wss://${req.headers.host}`;
-    const qrCode = qr.imageSync(serverUrl, { type: "png" });
-    res.writeHead(200, { "Content-Type": "image/png" });
-    res.end(qrCode);
+    const userIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    const webSocketUrl = `ws://${userIp}:${HTTP_PORT + 1}`;
+    
+    const qrCode = qr.imageSync(webSocketUrl, { type: "png" });
+    res.setHeader("Content-Type", "image/png");
+    res.send(qrCode);
 });
 
-// Start HTTP Server
-const server = app.listen(PORT, () => {
-    console.log(`✅ Server running at: https://${process.env.PROJECT_DOMAIN}.glitch.me`);
+// Start Express server
+const server = app.listen(HTTP_PORT, () => {
+    console.log(`✅ Server running on: https://${process.env.PROJECT_DOMAIN}.glitch.me`);
 });
 
+// WebSocket server
 const wss = new WebSocket.Server({ server });
-const clients = new Map(); // Store clients with their IDs
 
 wss.on("connection", (ws) => {
-    const clientId = Math.random().toString(36).substr(2, 9); // Unique ID for each client
-    clients.set(clientId, ws);
-    console.log(`✅ Client connected: ${clientId}`);
+    console.log("✅ Client connected!");
 
-    // Send client their ID
-    ws.send(JSON.stringify({ type: "welcome", clientId }));
+    ws.on("message", (data) => {
+        if (Buffer.isBuffer(data)) {
+            console.log(`📡 Received ${data.length} bytes of media data`);
 
-    ws.on("message", (message) => {
-        try {
-            const data = JSON.parse(message);
+            // Broadcast media only to the sender's specific clients
+            wss.clients.forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(data);
+                }
+            });
 
-            if (data.type === "stream" && data.targetId && clients.has(data.targetId)) {
-                // Forward the media only to the target user
-                clients.get(data.targetId).send(JSON.stringify({
-                    type: "stream",
-                    clientId: clientId,
-                    payload: data.payload,
-                }));
-                console.log(`🚀 Streaming from ${clientId} → ${data.targetId}`);
-            }
-        } catch (error) {
-            console.error("⚠️ Error processing message:", error);
+            console.log("🚀 Media forwarded.");
+        } else {
+            console.warn("⚠️ Ignored non-binary data.");
         }
     });
 
-    ws.on("close", () => {
-        clients.delete(clientId);
-        console.log(`❌ Client disconnected: ${clientId}`);
-    });
-
+    ws.on("close", () => console.log("❌ Client disconnected"));
     ws.on("error", (err) => console.error("❌ WebSocket error:", err));
 });
