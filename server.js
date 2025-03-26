@@ -6,13 +6,13 @@ const os = require("os");
 const path = require("path");
 const https = require("https");
 
-// 🔹 Configuration
+// 🔹 Setup Express
 const app = express();
-const HTTP_PORT = 5000;
-const WS_PORT = 5001;
+const HTTP_PORT = process.env.PORT || 3000;
+const WS_PORT = HTTP_PORT + 1;
 const PUBLIC_DIR = path.join(__dirname, "public");
 
-// 🔹 Function to Get Local Network IP
+// 🔹 Get Local IP for QR Code
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
     for (const iface of Object.values(interfaces)) {
@@ -22,17 +22,18 @@ function getLocalIp() {
             }
         }
     }
-    return "127.0.0.1"; // Default to localhost
+    return "127.0.0.1";
 }
-
 const localIp = getLocalIp();
-const serverIp = `ws://${localIp}:${WS_PORT}`;
-console.log(`✅ WebSocket server will run at: ${serverIp}`);
+const serverIp = `wss://${process.env.PROJECT_DOMAIN}.glitch.me`;
 
-// 🔹 Generate & Save QR Code
+// console.log(`✅ WebSocket server will run at: ${serverIp}`);
+
+// 🔹 Generate QR Code
 if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR);
 const qrCode = qr.imageSync(serverIp, { type: "png" });
 fs.writeFileSync(path.join(PUBLIC_DIR, "qr.png"), qrCode);
+
 
 // 🔹 Serve Static Files
 app.use(express.static(PUBLIC_DIR));
@@ -41,8 +42,14 @@ app.get("/qr", (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, "qr.png"));
 });
 
-// 🔹 Create WebSocket Server for Audio/Video Streaming
-const wss = new WebSocket.Server({ port: WS_PORT });
+
+// 🔹 WebSocket Server
+const server = app.listen(HTTP_PORT, () => {
+    console.log(`✅ HTTP Server running at: https://${process.env.PROJECT_DOMAIN}.glitch.me`);
+    console.log(`🖼️ QR Code at: https://${process.env.PROJECT_DOMAIN}.glitch.me/qr`);
+});
+
+const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
     console.log("✅ Client connected!");
@@ -51,42 +58,19 @@ wss.on("connection", (ws) => {
         if (Buffer.isBuffer(data)) {
             console.log(`📡 Received ${data.length} bytes of media data`);
 
-            // Broadcast the media data to all clients
+            // Broadcast media to all clients
             wss.clients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
                     client.send(data);
                 }
             });
 
-            console.log("🚀 Media data forwarded to clients.");
+            console.log("🚀 Media forwarded.");
         } else {
-            console.warn("⚠️ Received non-binary data, ignoring...");
+            console.warn("⚠️ Ignored non-binary data.");
         }
     });
 
     ws.on("close", () => console.log("❌ Client disconnected"));
     ws.on("error", (err) => console.error("❌ WebSocket error:", err));
 });
-
-// 🔹 Start Express Server
-app.listen(HTTP_PORT, () => {
-    console.log(`✅ HTTP Server running at: http://${localIp}:${HTTP_PORT}`);
-    console.log(`🖼️ QR Code available at: http://${localIp}:${HTTP_PORT}/qr`);
-    console.log(`🔌 WebSocket Server listening on: ws://${localIp}:${WS_PORT}`);
-});
-
-// 🔹 Optional: Secure WebSocket (WSS) Setup
-// Uncomment & add SSL certificate paths if needed
-/*
-const sslOptions = {
-    key: fs.readFileSync("/etc/letsencrypt/live/your-domain.com/privkey.pem"),
-    cert: fs.readFileSync("/etc/letsencrypt/live/your-domain.com/fullchain.pem"),
-};
-
-const secureServer = https.createServer(sslOptions, app);
-const wssSecure = new WebSocket.Server({ server: secureServer });
-
-secureServer.listen(443, () => {
-    console.log("🔒 Secure WebSocket Server running on wss://your-domain.com");
-});
-*/

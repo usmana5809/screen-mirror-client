@@ -234,12 +234,19 @@
 <script>
     let socket;
 
+
     function getWebSocketURL() {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const host = window.location.hostname;
-        const port = "5001"; // Change if needed or make it configurable
-        return `${protocol}://${host}:${port}`;
-    }
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.hostname;
+    return `${protocol}://${host}`;
+}
+
+    // function getWebSocketURL() {
+    //     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    //     const host = window.location.hostname;
+    //     const port = "5001"; // Change if needed or make it configurable
+    //     return `${protocol}://${host}:${port}`;
+    // }
 
     function startWebSocket() {
         socket = new WebSocket(getWebSocketURL());
