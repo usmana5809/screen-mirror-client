@@ -194,7 +194,7 @@
     <div id="qr-container">
         <div id="qr-box">
             <div id="qr-section">
-                <img id="qr-img" src="/qr" alt="QR Code">
+                <img src="qr.png" alt="QR Code">
             </div>
             <h3>How to Connect:</h3>
             <p>1. Scan the QR code using your mobile device.</p>
@@ -242,17 +242,19 @@
 <script>
     let socket;
 
-    
+
     function getWebSocketURL() {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        return `${protocol}://${window.location.host}`;
-    }
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.hostname;
+    return `${protocol}://${host}`;
+}
 
-
-//     function getWebSocketURL() {
-//     return `ws://${window.location.hostname}`;
-// }
-
+    // function getWebSocketURL() {
+    //     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    //     const host = window.location.hostname;
+    //     const port = "5001"; // Change if needed or make it configurable
+    //     return `${protocol}://${host}:${port}`;
+    // }
 
         function startWebSocket() {
             socket = new WebSocket(getWebSocketURL());
