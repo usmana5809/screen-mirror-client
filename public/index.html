@@ -242,9 +242,17 @@
 <script>
     let socket;
 
+    
     function getWebSocketURL() {
-    return `ws://${window.location.hostname}`;
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.hostname;
+    return `${protocol}://${host}`;
 }
+
+
+//     function getWebSocketURL() {
+//     return `ws://${window.location.hostname}`;
+// }
 
 
         function startWebSocket() {
