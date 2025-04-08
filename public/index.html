@@ -22,6 +22,23 @@
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
+        h3{
+            font-weight: bolder;
+            font-size: 24px;
+        }
+        #qr-box ol {
+            margin-left: 20px;
+            padding-left: 15px;
+            font-size: 16px;
+            font-weight: 900px;
+            color: #0F6FF8;
+            line-height: 1.4;
+        }
+
+        #qr-box ol li {
+            margin-bottom: 10px;
+        }
+
 
         #background-frame {
             position: fixed;
@@ -45,12 +62,12 @@
 
         #qr-box {
             background: white;
-            padding: 20px;
+            padding: 10px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             text-align: center;
-            width: 200%;
-            max-width: 350px;
+            width: 400%;
+            max-width: 400px;
         }
 
         #qr-section img {
@@ -197,11 +214,13 @@
                 <img src="qr.png" alt="QR Code">
             </div>
             <h3>How to Connect:</h3>
-            <p>1. Scan the QR code using your mobile device.</p>
-            <p>2. Wait for the connection to establish.</p>
-            <p>3. Once connected, the live screen will appear.</p>
+            <ol>
+                <li>Scan the QR code using your mobile device.</li>
+                <li>Wait for the connection to establish.</li>
+                <li>Once connected, the live screen will appear.</li>
+            </ol>
             <a href="https://play.google.com/store/apps/details?id=com.gr.screenmirroring.miracast.casttotv.screenshare&hl=en"
-                target="_blank" id="google-button">
+                target="_blank" id="google-button" style="margin: 20px;">
                 <i class="fab fa-google-play"></i> Get it on Play Store
             </a>
         </div>
