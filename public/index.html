@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, orientation=landscape">
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no,">
     <title>Screen Mirror: Record & Browse</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -49,13 +49,13 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             text-align: center;
-            width: 90%;
+            width: 200%;
             max-width: 350px;
         }
 
         #qr-section img {
-            width: 150px;
-            height: 150px;
+            width: 200px;
+            height: 200px;
             margin-bottom: 15px;
             animation: zoomEffect 2s infinite alternate;
         }
@@ -237,31 +237,46 @@
 
         </div>
     </div>
-<script>
+  
+  
+ <script>
+// Initialize socket variable globally
 let socket;
 
-function generateRoomId() {
+// Fetch the room ID from the server if not present in the URL
+async function fetchRoomId() {
+    const response = await fetch("/room"); // Fetch new Room ID from the server
+    const data = await response.json();
+    return data.roomId;
+}
+
+// Ensure room ID is in the URL
+async function generateRoomId() {
     const urlParams = new URLSearchParams(window.location.search);
     let roomId = urlParams.get("room");
+
     if (!roomId) {
-        roomId = Math.random().toString(36).substring(2, 8);
-        window.history.replaceState(null, "", `?room=${roomId}`);
+        roomId = await fetchRoomId(); // Get new Room ID from backend
+        window.history.replaceState(null, "", `?room=${roomId}`); // Update URL with roomId
     }
     return roomId;
 }
 
-function getWebSocketURL() {
+// Generate WebSocket URL with the room ID
+async function getWebSocketURL() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const host = window.location.hostname;
-    const roomId = generateRoomId();
+    const roomId = await generateRoomId(); // Ensure the room ID is consistent
     return `${protocol}://${host}?room=${roomId}`;
 }
 
-function startWebSocket() {
-    socket = new WebSocket(getWebSocketURL());
+// Initialize and start the WebSocket connection
+async function startWebSocket() {
+    const wsURL = await getWebSocketURL();
+    socket = new WebSocket(wsURL);
 
     socket.onopen = () => {
-        console.log("✅ WebSocket connected to room:", getWebSocketURL());
+        console.log("✅ WebSocket connected to room:", wsURL);
     };
 
     socket.onmessage = (event) => {
@@ -270,8 +285,10 @@ function startWebSocket() {
             document.getElementById("qr-container").style.display = "none";
             document.getElementById("live-screen-container").style.display = "flex";
             document.getElementById("live-screen-container").style.opacity = "1";
+            document.getElementById("float-round-btn").style.display = "flex";
         }, 500);
 
+        // Set Live Screen Image
         const blob = new Blob([event.data], { type: "image/jpeg" });
         const imageUrl = URL.createObjectURL(blob);
         const screenElement = document.getElementById("screen");
@@ -290,10 +307,10 @@ function startWebSocket() {
 
     socket.onerror = (error) => {
         console.error("⚠️ WebSocket error:", error);
-        setTimeout(startWebSocket, 3000);
     };
 }
 
+// Start WebSocket connection on page load
 window.onload = startWebSocket;
 
 function stopMirroring() {
@@ -306,57 +323,61 @@ function stopMirroring() {
         document.getElementById("live-screen-container").style.display = "none";
         document.getElementById("qr-container").style.display = "flex";
         document.getElementById("qr-container").style.opacity = "1";
+        document.getElementById("float-round-btn").style.display = "none";
     }, 500);
 }
 
-function zoomIn() {
-    const screen = document.getElementById("screen");
-    screen.style.width = (screen.clientWidth * 1.1) + "px";
-}
 
-function zoomOut() {
-    const screen = document.getElementById("screen");
-    screen.style.width = (screen.clientWidth * 0.9) + "px";
-}
 
-function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-    } else {
-        document.exitFullscreen();
-    }
-}
+        function zoomIn() {
+            const screen = document.getElementById("screen");
+            let currentWidth = screen.clientWidth;
+            screen.style.width = (currentWidth * 1.1) + "px"; // Increase width by 10%
+        }
 
-function toggleLandscapeMode() {
-    let img = document.getElementById("screen");
+        function zoomOut() {
+            const screen = document.getElementById("screen");
+            let currentWidth = screen.clientWidth;
+            screen.style.width = (currentWidth * 0.9) + "px"; // Decrease width by 10%
+        }
 
-    if (!document.fullscreenElement) {
-        img.style.width = "100vw";
-        img.style.height = "56.25vw";
-        img.style.objectFit = "cover";
+        function toggleLandscapeMode() {
+            let screen = document.getElementById("mirror-screen");
+            let img = document.getElementById("screen");
 
-        document.documentElement.requestFullscreen();
-    } else {
-        document.exitFullscreen();
-    }
-}
+            if (!document.fullscreenElement) {
+                screen.classList.add("fullscreen");
+                img.style.width = "100vw";
+                img.style.height = "56.25vw"; // Maintains 16:9 aspect ratio
+                img.style.objectFit = "cover";
 
-function togglePortraitMode() {
-    let img = document.getElementById("screen");
+                screen.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+                screen.classList.remove("fullscreen");
+            }
+        }
 
-    if (!document.fullscreenElement) {
-        img.style.width = "100vw";
-        img.style.height = "100vh";
-        img.style.objectFit = "contain";
-        img.style.margin = "auto";
+        function togglePortraitMode() {
+            let screen = document.getElementById("mirror-screen");
+            let img = document.getElementById("screen");
 
-        document.documentElement.requestFullscreen();
-    } else {
-        document.exitFullscreen();
-    }
-}
-   
-</script>
+            if (!document.fullscreenElement) {
+                screen.classList.add("fullscreen");
+                img.style.width = "100vw";
+                img.style.height = "100vh"; // Keeps it fully visible
+                img.style.objectFit = "contain"; // Ensures header & bottom are fully visible
+                img.style.margin = "auto";
+
+                screen.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+                screen.classList.remove("fullscreen");
+            }
+        }
+
+        startWebSocket();
+    </script>
 
 </body>
 
