@@ -13,21 +13,19 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR);
 
 // 🔹 Generate Room-specific QR Code
-const generateRoomId = () => Math.random().toString(36).substring(2, 8);
+const roomId = Math.random().toString(36).substring(2, 8);
+const serverUrl = `wss://${process.env.PROJECT_DOMAIN}.glitch.me?room=${roomId}`;
+const qrCode = qr.imageSync(serverUrl, { type: "png" });
+fs.writeFileSync(path.join(PUBLIC_DIR, "qr.png"), qrCode);
 
 // 🔹 Serve Static Files
 app.use(express.static(PUBLIC_DIR));
-app.get("/qr", (req, res) => {
-    const roomId = generateRoomId();
-    const serverUrl = `wss://${process.env.PROJECT_DOMAIN}.glitch.me?room=${roomId}`;
-    const qrCode = qr.imageSync(serverUrl, { type: "png" });
-    fs.writeFileSync(path.join(PUBLIC_DIR, "qr.png"), qrCode);
-    res.sendFile(path.join(PUBLIC_DIR, "qr.png"));
-});
+app.get("/qr", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "qr.png")));
 
 // 🔹 Start HTTP Server
 const server = app.listen(HTTP_PORT, () => {
     console.log(`✅ Server running at: https://${process.env.PROJECT_DOMAIN}.glitch.me`);
+    console.log(`🔗 Generated Room ID: ${roomId}`);
 });
 
 // 🔹 WebSocket Server
@@ -36,11 +34,12 @@ const rooms = {}; // Track rooms and their connections
 
 // Route to generate and send room ID to the client
 app.get("/room", (req, res) => {
-    const roomId = generateRoomId(); // Generate random Room ID
+    const roomId = Math.random().toString(36).substring(2, 8); // Generate random Room ID
     console.log(`Generated Room ID: ${roomId}`);
     
     res.json({ roomId }); // Send the Room ID to the client
 });
+
 
 // Handle WebSocket connection
 wss.on("connection", (ws, req) => {
@@ -53,7 +52,6 @@ wss.on("connection", (ws, req) => {
         return;
     }
 
-    // Ensure the room exists or create a new room
     if (!rooms[roomId]) rooms[roomId] = new Set();
     rooms[roomId].add(ws);
 
@@ -62,7 +60,7 @@ wss.on("connection", (ws, req) => {
     ws.on("message", (data) => {
         if (Buffer.isBuffer(data)) {
             console.log(`📡 Received ${data.length} bytes from Room: ${roomId}`);
-            // Broadcast only to clients in the same room
+            // Broadcast only to the same room
             rooms[roomId].forEach(client => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
                     client.send(data);

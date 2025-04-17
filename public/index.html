@@ -258,79 +258,74 @@
     </div>
   
   
- <script>
-// Initialize socket variable globally
-let socket;
+    <script>
+        let socket;
 
-// Fetch the room ID from the server if not present in the URL
-async function fetchRoomId() {
-    const response = await fetch("/room"); // Fetch new Room ID from the server
-    const data = await response.json();
-    return data.roomId;
-}
-
-// Ensure room ID is in the URL
-async function generateRoomId() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let roomId = urlParams.get("room");
-
-    if (!roomId) {
-        roomId = await fetchRoomId(); // Get new Room ID from backend
-        window.history.replaceState(null, "", `?room=${roomId}`); // Update URL with roomId
-    }
-    return roomId;
-}
-
-// Generate WebSocket URL with the room ID
-async function getWebSocketURL() {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = window.location.hostname;
-    const roomId = await generateRoomId(); // Ensure the room ID is consistent
-    return `${protocol}://${host}?room=${roomId}`;
-}
-
-// Initialize and start the WebSocket connection
-async function startWebSocket() {
-    const wsURL = await getWebSocketURL();
-    socket = new WebSocket(wsURL);
-
-    socket.onopen = () => {
-        console.log("✅ WebSocket connected to room:", wsURL);
-    };
-
-    socket.onmessage = (event) => {
-        document.getElementById("qr-container").style.opacity = "0";
-        setTimeout(() => {
-            document.getElementById("qr-container").style.display = "none";
-            document.getElementById("live-screen-container").style.display = "flex";
-            document.getElementById("live-screen-container").style.opacity = "1";
-            document.getElementById("float-round-btn").style.display = "flex";
-        }, 500);
-
-        // Set Live Screen Image
-        const blob = new Blob([event.data], { type: "image/jpeg" });
-        const imageUrl = URL.createObjectURL(blob);
-        const screenElement = document.getElementById("screen");
-
-        if (screenElement.src) {
-            URL.revokeObjectURL(screenElement.src);
+        async function fetchRoomId() {
+            const response = await fetch("/room"); // Fetch new Room ID from server
+            const data = await response.json();
+            return data.roomId;
         }
-        screenElement.src = imageUrl;
-    };
 
-    socket.onclose = () => {
-        console.log("❌ WebSocket closed. Reconnecting...");
-        stopMirroring();
-        setTimeout(startWebSocket, 3000);
-    };
+        async function generateRoomId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let roomId = urlParams.get("room");
 
-    socket.onerror = (error) => {
-        console.error("⚠️ WebSocket error:", error);
-    };
-}
+            if (!roomId) {
+                roomId = await fetchRoomId(); // Get new Room ID from backend
+                window.history.replaceState(null, "", `?room=${roomId}`); // Update URL
+            }
+            return roomId;
+        }
 
-// Start WebSocket connection on page load
-window.onload = startWebSocket;
+        async function getWebSocketURL() {
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const host = window.location.hostname;
+            const roomId = await generateRoomId(); // Ensure correct Room ID
+            return `${protocol}://${host}?room=${roomId}`;
+        }
+
+        async function startWebSocket() {
+            const wsURL = await getWebSocketURL();
+            socket = new WebSocket(wsURL);
+
+            socket.onopen = () => {
+                console.log("✅ WebSocket connected to room:", wsURL);
+            };
+
+            socket.onmessage = (event) => {
+                // Hide QR and show live screen
+                document.getElementById("qr-container").style.opacity = "0";
+                setTimeout(() => {
+                    document.getElementById("qr-container").style.display = "none";
+                    document.getElementById("live-screen-container").style.display = "flex";
+                    document.getElementById("live-screen-container").style.opacity = "1";
+                    document.getElementById("float-round-btn").style.display = "flex";
+                }, 500);
+
+                // Set Live Screen Image
+                const blob = new Blob([event.data], { type: "image/jpeg" });
+                const imageUrl = URL.createObjectURL(blob);
+                const screenElement = document.getElementById("screen");
+
+                if (screenElement.src) {
+                    URL.revokeObjectURL(screenElement.src);
+                }
+                screenElement.src = imageUrl;
+            };
+
+            socket.onclose = () => {
+                console.log("❌ WebSocket closed. Reconnecting...");
+                stopMirroring();
+                setTimeout(startWebSocket, 3000);
+            };
+
+            socket.onerror = (error) => {
+                console.error("⚠️ WebSocket error:", error);
+            };
+        }
+
+        window.onload = startWebSocket;
 
 function stopMirroring() {
     if (socket) {
@@ -397,6 +392,7 @@ function stopMirroring() {
 
         startWebSocket();
     </script>
+
 
 </body>
 
